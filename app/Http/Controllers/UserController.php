@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Score;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use JWTAuth;
@@ -67,19 +68,67 @@ class UserController extends Controller
             $user->username = $request->username;
             $user->password = bcrypt($request->password);
             $user->save();
-            return response()->json(['code'=>'SUCCESS','message'=>'register success','content'=>null]);
+
+            $score = new Score();
+            $score->modul1 = 0;
+            $score->modul2 = 0;
+            $score->modul3 = 0;
+            $score->modul4 = 0;
+            $user->score()->save($score);
+
+            $field = filter_var($request->usernameOrEmail, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+            $credentials = $request->only($field, 'password');
+            $token = JWTAuth::attempt($credentials);
+            return response()->json(compact('token'));
         } catch (QueryException $exception) {
-            return response()->json(['code'=>'FAILED','message'=>'User already exist']);
+            return $exception;
         }
     }
 
     public function logout() {
         try{
             JWTAuth::invalidate(JWTAuth::getToken());
-            return 'ok';
+            return response()->json(['code'=>'SUCCESS','message'=>'Ok!']);
         } catch (JWTException $exceptione) {
             return response()->json(['token_absent'], $exceptione->getStatusCode());
         }
 
+    }
+
+    public function setScore(Request $request) {
+        try {
+            $score = User::where('username',$request->username)->first()->score;
+            $score->modul1 = $request->modul1;
+            $score->modul2 = $request->modul2;
+            $score->modul3 = $request->modul3;
+            $score->modul4 = $request->modul4;
+            $score->save();
+        } catch (Exception $exception) {
+            return response()->json($exception->getMessage());
+        }
+    }
+
+    public function getScore() {
+        try {
+
+            if (! $user = JWTAuth::parseToken()->authenticate()) {
+                return response()->json(['user_not_found'], 404);
+            }
+
+        } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+
+            return response()->json(['token_expired'], $e->getStatusCode());
+
+        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+
+            return response()->json(['token_invalid'], $e->getStatusCode());
+
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+
+            return response()->json(['token_absent'], $e->getStatusCode());
+
+        }
+        $score = $user->score;
+        return response()->json(compact('score'));
     }
 }

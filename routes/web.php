@@ -13,5 +13,11 @@
 
 Route::post('/signup','UserController@RegisterUser');
 Route::post('/login','UserController@authenticate');
+Route::post('/saveScore','UserController@saveScore');
+Route::post('/savePost','PostController@savePost');
+Route::post('/saveComment','PostController@saveComment');
+Route::get('/getScore','UserController@getScore');
+Route::get('/getPostByModul','PostController@getPostByModul');
+Route::get('/getCommentByPost','PostController@getCommentByPost');
 Route::get('/user','UserController@getAuthenticatedUser');
 Route::get('/logout','UserController@logout');
